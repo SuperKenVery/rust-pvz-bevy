@@ -1,4 +1,4 @@
-use super::super::PLAYERS_Z;
+use super::{super::PLAYERS_Z, ZombieCommon};
 use crate::plugins::{
     land::{LAND_SIZE, LAND_TILE_SIZE},
     player::PlayerCommon,
@@ -17,7 +17,8 @@ impl BasicZombie {
     pub fn create(pos: GridPos, commands: &mut Commands, textures: &Res<PlayerTextureResources>) {
         commands
             .spawn((
-                PlayerCommon::new(100.),
+                PlayerCommon::new("BasicZombie", 100.),
+                ZombieCommon,
                 BasicZombie,
                 AnimatedImageController::play(textures.basic_zombie.clone()),
                 pos.round()

@@ -63,6 +63,14 @@ impl GridPos {
         GridPos::new(self.x.round(), self.y.round())
     }
 
+    /// Is the position inside the land tiles?
+    pub fn in_land(&self) -> bool {
+        let rounded = self.round();
+        let x = 0. <= rounded.x && rounded.x < LAND_SIZE.x;
+        let y = 0. <= rounded.y && rounded.y < LAND_SIZE.y;
+        x && y
+    }
+
     fn debug_offsets(
         mut commands: Commands,
         mut meshes: ResMut<Assets<Mesh>>,
@@ -132,40 +140,30 @@ impl From<Vec2> for GridPos {
 }
 
 /// Map index storing plants on each tile
-#[derive(Resource)]
+#[derive(Resource, Default)]
 pub struct LandPlants {
-    pub tiles: HashMap<(i32, i32), Option<Entity>>,
+    pub tiles: HashMap<(i32, i32), Entity>,
 }
 
 impl LandPlants {
     pub fn add(&mut self, pos: GridPos, entity: Entity) {
-        debug!("Adding plant to land tile {pos:#?}");
-        self.tiles.insert(pos.into(), Some(entity));
+        debug!("Adding plant to land tile {pos:?}");
+        assert!(pos.in_land());
+        self.tiles.insert(pos.into(), entity);
     }
 
     pub fn is_empty(&self, pos: GridPos) -> bool {
+        trace!("Querying empty at pos={pos:?}, in_land={}", pos.in_land());
+        if pos.in_land() == false {
+            return false;
+        }
         let key: (i32, i32) = pos.into();
-        // debug!("At {pos:?} we have {:#?} ", self.tiles.get(&key));
         !self.tiles.get(&key).is_some()
     }
 
     pub fn remove(&mut self, pos: GridPos) {
         let key: (i32, i32) = pos.into();
-        self.tiles.get(&key).take();
-    }
-}
-
-impl Default for LandPlants {
-    fn default() -> Self {
-        let mut map = HashMap::new();
-
-        for x in 0..LAND_SIZE.x as i32 {
-            for y in 0..LAND_SIZE.y as i32 {
-                map.insert((x, y), None);
-            }
-        }
-
-        Self { tiles: map }
+        self.tiles.remove(&key);
     }
 }
 

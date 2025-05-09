@@ -1,6 +1,10 @@
 use super::{land::LandPlants, PlayerTextureResources, TOOLBAR_Z};
-use crate::plugins::{plants::sunflower::Sunflower, FLOATING_Z, FLYING_Z};
-use bevy::prelude::*;
+use crate::plugins::{
+    plants::{peashooter::Peashooter, sunflower::Sunflower},
+    FLOATING_Z, FLYING_Z,
+};
+use bevy::text::TextBounds;
+use bevy::{prelude::*, text::cosmic_text::ttf_parser::Style};
 use std::dbg;
 
 pub struct ToolbarPlugin;
@@ -9,7 +13,13 @@ impl Plugin for ToolbarPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup);
         app.add_systems(PreStartup, ToolbarTextureResource::setup);
-        app.add_systems(Update, follow_mouse);
+        app.add_systems(
+            Update,
+            (
+                follow_mouse,
+                update_counter.run_if(resource_exists_and_changed::<SunCount>),
+            ),
+        );
     }
 }
 
@@ -34,52 +44,81 @@ impl ToolbarTextureResource {
     }
 }
 
+/// Marker component for the sun counter
 #[derive(Component)]
-struct SunCounter;
+pub struct SunCounter;
 
+/// Any entity with this component will be positionsed
+/// where the mouse pointer is
 #[derive(Component)]
 #[require(Transform)]
 struct FollowMouse;
 
+/// The **Resource** representing how many suns we
+/// currently have. Used to buy plants.
+#[derive(Resource)]
+pub struct SunCount(pub i32);
+
 fn setup(mut commands: Commands, textures: Res<ToolbarTextureResource>) {
+    let counter_transform = Transform::from_xyz(-400. + 163. / 2., 300. - 48. / 2., TOOLBAR_Z);
     commands.spawn((
         SunCounter,
         Sprite::from_image(textures.counter.clone()),
-        Transform::from_xyz(-400. + 163. / 2., 300. - 48. / 2., TOOLBAR_Z),
+        counter_transform.clone(),
+        Text2d::new("0"),
+        TextColor::BLACK,
     ));
 
     let left = -400. + 163.;
+    const WIDTH: f32 = 110.;
+    let mut x = left + WIDTH / 2.;
+
+    add_toolbar_item(
+        &mut commands,
+        &mut x,
+        textures.sunflower_card.clone(),
+        |mouse_pos: Vec2, commands: &mut Commands, textures: Res<PlayerTextureResources>| {
+            info!("Planting a sunflower at {mouse_pos}");
+            Sunflower::create(mouse_pos.into(), commands, textures);
+        },
+    );
+
+    add_toolbar_item(
+        &mut commands,
+        &mut x,
+        textures.peashooter_card.clone(),
+        |mouse_pos: Vec2, commands: &mut Commands, textures: Res<PlayerTextureResources>| {
+            Peashooter::create(mouse_pos.into(), commands, textures);
+        },
+    );
+}
+
+fn add_toolbar_item(
+    commands: &mut Commands,
+    x: &mut f32,
+    card_texture: Handle<Image>,
+    plant_fn: impl Fn(Vec2, &mut Commands, Res<PlayerTextureResources>) -> ()
+        + Sync
+        + Send
+        + 'static
+        + Clone,
+) {
     const HEIGHT: f32 = 70.;
     const WIDTH: f32 = 110.;
     let y = 300. - HEIGHT / 2.;
-    let mut x = left + WIDTH / 2.;
 
     commands
         .spawn((
-            Sprite::from_image(textures.sunflower_card.clone()),
-            Transform::from_xyz(x, y, TOOLBAR_Z),
-            Pickable::default(),
-        ))
-        .observe(tb_gen_observer(
-            textures.sunflower_card.clone(),
-            |mouse_pos: Vec2, commands: &mut Commands, textures: Res<PlayerTextureResources>| {
-                info!("Planting a sunflower at {mouse_pos}");
-                Sunflower::create(mouse_pos.into(), commands, textures);
+            Sprite {
+                image: card_texture.clone(),
+                color: Color::linear_rgb(0.5, 0.5, 0.5),
+                ..default()
             },
-        ));
-    x += WIDTH;
-
-    commands
-        .spawn((
-            Sprite::from_image(textures.peashooter_card.clone()),
-            Transform::from_xyz(x, y, TOOLBAR_Z),
+            Transform::from_xyz(*x, y, TOOLBAR_Z),
             Pickable::default(),
         ))
-        .observe(tb_gen_observer(textures.sunflower_card.clone(),
-            |mouse_pos: Vec2, commands: &mut Commands, textures: Res<PlayerTextureResources>| {
-                todo!()
-            }));
-    x += WIDTH;
+        .observe(tb_gen_observer(card_texture.clone(), plant_fn));
+    *x += WIDTH;
 }
 
 /// # Toolbar generate observer
@@ -177,4 +216,8 @@ fn follow_mouse(
         pos.translation.x = mouse_pos.x;
         pos.translation.y = mouse_pos.y;
     }
+}
+
+fn update_counter(mut counter: Single<&mut Text2d, With<SunCounter>>, sun_count: Res<SunCount>) {
+    counter.0 = format!("{}", sun_count.0);
 }

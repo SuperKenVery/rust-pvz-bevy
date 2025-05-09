@@ -15,26 +15,41 @@ use vleue_kinetoscope::{AnimatedImage, AnimatedImageController};
 #[derive(Debug, Clone, Component)]
 #[require(Transform)]
 pub struct PlayerCommon {
+    pub name: &'static str,
     pub health: f32,
     pub spawned_time: Instant,
 }
 
+#[derive(Event)]
+pub struct DieEvent;
+
 impl PlayerCommon {
-    pub fn new(health: impl ToPrimitive) -> Self {
+    pub fn new(name: &'static str, health: impl ToPrimitive) -> Self {
         PlayerCommon {
+            name,
             health: health.to_f32().unwrap(),
             spawned_time: Instant::now(),
         }
     }
 
-    pub fn damage(&mut self, amount: f32) {
+    pub fn damage(&mut self, commands: &mut Commands, amount: f32) {
+        info!(
+            "A {} damaged by amount {amount}, {} left",
+            self.name,
+            self.health - amount
+        );
         self.health -= amount;
+
+        if self.health <= 0. {
+            commands.trigger(DieEvent);
+        }
     }
 }
 
 impl Default for PlayerCommon {
     fn default() -> Self {
         PlayerCommon {
+            name: "Default",
             health: 100.,
             spawned_time: Instant::now(),
         }
@@ -56,9 +71,21 @@ impl PlayerTextureResources {
         commands.insert_resource(PlayerTextureResources {
             basic_zombie: asset_server.load("TheAdvancing_zombie.gif"),
             sunflower: asset_server.load("SunFlower.gif"),
-            sun: asset_server.load("Sun.png"),
+            sun: asset_server.load("Sun_transparent_background.png"),
             shooter: asset_server.load("PeaShooter.gif"),
             shooter_bullet: asset_server.load("pea.png"),
         });
+    }
+}
+
+pub fn dead_cleaner(
+    trigger: Trigger<DieEvent>,
+    mut commands: Commands,
+    players: Query<(Entity, &mut PlayerCommon)>,
+) {
+    for (ent, pc) in players {
+        if pc.health <= 0. {
+            commands.get_entity(ent).unwrap().despawn();
+        }
     }
 }
