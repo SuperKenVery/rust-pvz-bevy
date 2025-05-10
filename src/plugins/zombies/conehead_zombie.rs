@@ -11,17 +11,16 @@ use vleue_kinetoscope::{
 };
 
 #[derive(Component)]
-pub struct BasicZombie;
+pub struct ConeheadZombie;
 
-impl BasicZombie {
+impl ConeheadZombie {
     pub fn create(pos: GridPos, commands: &mut Commands, textures: &Res<PlayerTextureResources>) {
         commands.spawn((
-            PlayerCommon::new("BasicZombie", 100.),
+            PlayerCommon::new("Conehead Zombie", 100.),
             ZombieCommon,
-            BasicZombie,
-            AnimatedImageController::play(textures.basic_zombie.clone()),
-            pos.round()
-                .to_world_transform(PLAYERS_Z + LAND_SIZE.y - pos.y),
+            ConeheadZombie,
+            AnimatedImageController::play(textures.conehead_zombie.clone()),
+            pos.to_world_transform(PLAYERS_Z + LAND_SIZE.y - pos.y),
         ));
     }
 }

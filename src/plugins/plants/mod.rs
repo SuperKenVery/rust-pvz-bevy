@@ -1,5 +1,6 @@
 pub mod peashooter;
 pub mod sunflower;
+pub mod wallnut;
 
 use super::{land::LandPlants, GridPos};
 use crate::plugins::player::PlayerCommon;

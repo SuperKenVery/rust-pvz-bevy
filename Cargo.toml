@@ -8,5 +8,6 @@ license = "MIT"
 
 [dependencies]
 bevy = "0.16.0"
+fastrand = "2.3.0"
 num = "0.4.3"
 vleue_kinetoscope = "0.4.1"

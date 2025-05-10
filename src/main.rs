@@ -6,6 +6,8 @@ use vleue_kinetoscope::AnimatedImagePlugin;
 mod plugins;
 use plugins::{plants, toolbar, GridPos, PlayerTextureResources};
 
+pub const SCREEN_RESOLUTION: Vec2 = Vec2::new(800., 600.);
+
 fn main() {
     App::new()
         .add_plugins(
@@ -14,7 +16,7 @@ fn main() {
                     primary_window: Some(Window {
                         title: "Plant vs Zombies".into(),
                         // resolution: WindowResolution::new(800., 600.).with_scale_factor_override(1.0),
-                        resolution: (800., 600.).into(),
+                        resolution: SCREEN_RESOLUTION.into(),
                         ..default()
                     }),
                     ..default()
@@ -46,15 +48,4 @@ fn setup_resources(mut commands: Commands) {
     commands.insert_resource(plugins::toolbar::SunCount(50));
 }
 
-fn debug_setup(mut commands: Commands, textures: Res<PlayerTextureResources>) {
-    plugins::zombies::basic_zombie::BasicZombie::create(
-        GridPos::new(8, 0),
-        &mut commands,
-        &textures,
-    );
-    plugins::zombies::basic_zombie::BasicZombie::create(
-        GridPos::new(8, 1),
-        &mut commands,
-        &textures,
-    );
-}
+fn debug_setup(mut commands: Commands, textures: Res<PlayerTextureResources>) {}

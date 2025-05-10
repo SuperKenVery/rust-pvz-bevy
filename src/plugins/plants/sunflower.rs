@@ -1,9 +1,12 @@
 use super::{super::PLAYERS_Z, PlantCommon};
-use crate::plugins::{
-    land::{LAND_SIZE, LAND_TILE_SIZE},
-    player::PlayerCommon,
-    toolbar::{SunCount, SunCounter},
-    GridPos, PlayerTextureResources, FLYING_Z,
+use crate::{
+    plugins::{
+        land::{LAND_SIZE, LAND_TILE_SIZE},
+        player::PlayerCommon,
+        toolbar::{SunCount, SunCounter},
+        GridPos, PlayerTextureResources, FLYING_Z,
+    },
+    SCREEN_RESOLUTION,
 };
 use bevy::log::info;
 use bevy::prelude::*;
@@ -65,8 +68,16 @@ pub fn sunflow_gen_sun(
     }
 }
 
-pub fn sun_go_up(time: Res<Time>, mut commands: Commands, suns: Query<&mut Transform, With<Sun>>) {
-    for mut sun in suns {
-        sun.translation.y += time.delta().as_millis() as f32 / 100.;
+pub fn sun_go_up(
+    time: Res<Time>,
+    mut commands: Commands,
+    suns: Query<(Entity, &mut Transform), With<Sun>>,
+) {
+    for (entity, mut sun_pos) in suns {
+        sun_pos.translation.y += time.delta().as_millis() as f32 / 100.;
+
+        if sun_pos.translation.y >= SCREEN_RESOLUTION.y + 80. / 2. {
+            commands.get_entity(entity).unwrap().despawn();
+        }
     }
 }

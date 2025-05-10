@@ -1,6 +1,6 @@
 use super::{land::LandPlants, PlayerTextureResources, TOOLBAR_Z};
 use crate::plugins::{
-    plants::{peashooter::Peashooter, sunflower::Sunflower},
+    plants::{peashooter::Peashooter, sunflower::Sunflower, wallnut::Wallnut},
     FLOATING_Z, FLYING_Z,
 };
 use bevy::{ecs::system::IntoObserverSystem, text::TextBounds};
@@ -97,6 +97,16 @@ fn setup(mut commands: Commands, textures: Res<ToolbarTextureResource>, sun_coun
         100,
         |mouse_pos: Vec2, commands: &mut Commands, textures: Res<PlayerTextureResources>| {
             Peashooter::create(mouse_pos.into(), commands, textures);
+        },
+    );
+
+    add_toolbar_item(
+        &mut commands,
+        &mut x,
+        textures.wallnut_card.clone(),
+        50,
+        |mouse_pos: Vec2, commands: &mut Commands, textures: Res<PlayerTextureResources>| {
+            Wallnut::create(mouse_pos.into(), commands, textures);
         },
     );
 }
