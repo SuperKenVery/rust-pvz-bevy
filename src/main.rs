@@ -43,7 +43,7 @@ fn setup(mut commands: Commands) {
 
 fn setup_resources(mut commands: Commands) {
     commands.insert_resource(plugins::land::LandPlants::default());
-    commands.insert_resource(plugins::toolbar::SunCount(0));
+    commands.insert_resource(plugins::toolbar::SunCount(50));
 }
 
 fn debug_setup(mut commands: Commands, textures: Res<PlayerTextureResources>) {

@@ -3,7 +3,7 @@ use crate::plugins::{
     plants::{peashooter::Peashooter, sunflower::Sunflower},
     FLOATING_Z, FLYING_Z,
 };
-use bevy::text::TextBounds;
+use bevy::{ecs::system::IntoObserverSystem, text::TextBounds};
 use bevy::{prelude::*, text::cosmic_text::ttf_parser::Style};
 use std::dbg;
 
@@ -17,7 +17,7 @@ impl Plugin for ToolbarPlugin {
             Update,
             (
                 follow_mouse,
-                update_counter.run_if(resource_exists_and_changed::<SunCount>),
+                sun_changed.run_if(resource_exists_and_changed::<SunCount>),
             ),
         );
     }
@@ -48,6 +48,12 @@ impl ToolbarTextureResource {
 #[derive(Component)]
 pub struct SunCounter;
 
+/// Marker component for a button (a plant) in the toolbar
+#[derive(Component)]
+pub struct ToolbarPlant {
+    pub price: i32,
+}
+
 /// Any entity with this component will be positionsed
 /// where the mouse pointer is
 #[derive(Component)]
@@ -59,13 +65,13 @@ struct FollowMouse;
 #[derive(Resource)]
 pub struct SunCount(pub i32);
 
-fn setup(mut commands: Commands, textures: Res<ToolbarTextureResource>) {
+fn setup(mut commands: Commands, textures: Res<ToolbarTextureResource>, sun_count: Res<SunCount>) {
     let counter_transform = Transform::from_xyz(-400. + 163. / 2., 300. - 48. / 2., TOOLBAR_Z);
     commands.spawn((
         SunCounter,
         Sprite::from_image(textures.counter.clone()),
         counter_transform.clone(),
-        Text2d::new("0"),
+        Text2d::new(format!("{}", sun_count.0)),
         TextColor::BLACK,
     ));
 
@@ -77,6 +83,7 @@ fn setup(mut commands: Commands, textures: Res<ToolbarTextureResource>) {
         &mut commands,
         &mut x,
         textures.sunflower_card.clone(),
+        50,
         |mouse_pos: Vec2, commands: &mut Commands, textures: Res<PlayerTextureResources>| {
             info!("Planting a sunflower at {mouse_pos}");
             Sunflower::create(mouse_pos.into(), commands, textures);
@@ -87,6 +94,7 @@ fn setup(mut commands: Commands, textures: Res<ToolbarTextureResource>) {
         &mut commands,
         &mut x,
         textures.peashooter_card.clone(),
+        100,
         |mouse_pos: Vec2, commands: &mut Commands, textures: Res<PlayerTextureResources>| {
             Peashooter::create(mouse_pos.into(), commands, textures);
         },
@@ -97,6 +105,7 @@ fn add_toolbar_item(
     commands: &mut Commands,
     x: &mut f32,
     card_texture: Handle<Image>,
+    price: i32,
     plant_fn: impl Fn(Vec2, &mut Commands, Res<PlayerTextureResources>) -> ()
         + Sync
         + Send
@@ -109,6 +118,7 @@ fn add_toolbar_item(
 
     commands
         .spawn((
+            ToolbarPlant { price },
             Sprite {
                 image: card_texture.clone(),
                 color: Color::linear_rgb(0.5, 0.5, 0.5),
@@ -142,11 +152,19 @@ fn tb_gen_observer(
         + Send
         + 'static
         + Clone,
-) -> impl Fn(Trigger<Pointer<Click>>, Commands, Single<(&Camera, &GlobalTransform)>) {
+) -> impl Fn(
+    Trigger<Pointer<Click>>,
+    Commands,
+    Query<&ToolbarPlant>,
+    Single<(&Camera, &GlobalTransform)>,
+    Res<SunCount>,
+) {
     // The observer for toolbar click
     move |trigger: Trigger<Pointer<Click>>,
           mut commands: Commands,
-          camera: Single<(&Camera, &GlobalTransform)>| {
+          plant: Query<&ToolbarPlant>,
+          camera: Single<(&Camera, &GlobalTransform)>,
+          sun_count: Res<SunCount>| {
         let event = trigger.event();
         let mouse_pos_raw = event.pointer_location.clone();
         let (camera, camera_transform) = *camera;
@@ -155,6 +173,12 @@ fn tb_gen_observer(
             .unwrap()
             .origin
             .truncate();
+
+        let toolbar_plant = plant.get(trigger.target()).unwrap();
+        let price = toolbar_plant.price;
+        if sun_count.0 < price {
+            return;
+        }
 
         let cloned_plant_fn = plant_fn.clone();
         // Spawn the floating widget
@@ -171,7 +195,8 @@ fn tb_gen_observer(
                       mut commands: Commands,
                       textures: Res<PlayerTextureResources>,
                       camera: Single<(&Camera, &GlobalTransform)>,
-                      map: Res<LandPlants>| {
+                      map: Res<LandPlants>,
+                      mut sun_count: ResMut<SunCount>| {
                     let event = trigger.event();
                     let mouse_pos_raw = event.pointer_location.clone();
                     let (camera, camera_transform) = *camera;
@@ -184,6 +209,7 @@ fn tb_gen_observer(
                     info!("Clicked again, planting");
                     if map.is_empty(mouse_pos.into()) {
                         cloned_plant_fn(mouse_pos, &mut commands, textures);
+                        sun_count.0 -= price;
                     } else {
                         warn!("Not planting because it's not empty")
                     }
@@ -218,6 +244,21 @@ fn follow_mouse(
     }
 }
 
-fn update_counter(mut counter: Single<&mut Text2d, With<SunCounter>>, sun_count: Res<SunCount>) {
-    counter.0 = format!("{}", sun_count.0);
+fn sun_changed(
+    mut counter: Single<&mut Text2d, With<SunCounter>>,
+    sun_count: Res<SunCount>,
+    toolbar_plants: Query<(&mut Sprite, &ToolbarPlant)>,
+) {
+    let current_suns = sun_count.0;
+    counter.0 = format!("{}", current_suns);
+
+    for (mut button, plant) in toolbar_plants {
+        if current_suns >= plant.price {
+            // Make it not grey
+            button.color = Color::WHITE;
+        } else {
+            // Make it grey
+            button.color = Color::srgb(0.5, 0.5, 0.5);
+        }
+    }
 }
