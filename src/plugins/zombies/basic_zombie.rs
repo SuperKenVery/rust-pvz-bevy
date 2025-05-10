@@ -17,7 +17,10 @@ impl BasicZombie {
     pub fn create(pos: GridPos, commands: &mut Commands, textures: &Res<PlayerTextureResources>) {
         commands.spawn((
             PlayerCommon::new("BasicZombie", 100.),
-            ZombieCommon,
+            ZombieCommon::new(
+                textures.basic_zombie.clone(),
+                textures.eating_zombie.clone(),
+            ),
             BasicZombie,
             AnimatedImageController::play(textures.basic_zombie.clone()),
             pos.round()

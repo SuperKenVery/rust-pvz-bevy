@@ -216,7 +216,6 @@ fn tb_gen_observer(
                         .origin
                         .truncate();
 
-                    info!("Clicked again, planting");
                     if map.is_empty(mouse_pos.into()) {
                         cloned_plant_fn(mouse_pos, &mut commands, textures);
                         sun_count.0 -= price;

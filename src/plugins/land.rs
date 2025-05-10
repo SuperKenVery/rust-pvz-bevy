@@ -153,7 +153,6 @@ impl LandPlants {
     }
 
     pub fn is_empty(&self, pos: GridPos) -> bool {
-        trace!("Querying empty at pos={pos:?}, in_land={}", pos.in_land());
         if pos.in_land() == false {
             return false;
         }
@@ -164,6 +163,11 @@ impl LandPlants {
     pub fn remove(&mut self, pos: GridPos) {
         let key: (i32, i32) = pos.into();
         self.tiles.remove(&key);
+    }
+
+    pub fn get(&self, pos: GridPos) -> Option<&Entity> {
+        let key: (i32, i32) = pos.into();
+        self.tiles.get(&key)
     }
 }
 

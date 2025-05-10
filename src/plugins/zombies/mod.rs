@@ -1,19 +1,44 @@
+use super::{
+    land::{LandPlants, LAND_SIZE},
+    plants::PlantCommon,
+    GridPos,
+};
 use crate::plugins::player::PlayerCommon;
+use bevy::log::{debug, info};
 use bevy::{
     ecs::{component::HookContext, entity::EntityEquivalent, world::DeferredWorld},
     prelude::*,
 };
-
-use super::{land::LAND_SIZE, GridPos};
+use vleue_kinetoscope::{AnimatedImage, AnimatedImageController};
 
 pub mod basic_zombie;
 pub mod conehead_zombie;
 pub mod create_zombie;
 
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub enum ZombieState {
+    Walking,
+    Eating,
+}
+
 #[derive(Component)]
 #[require(PlayerCommon, Transform)]
 #[component(on_add=zombie_on_add, on_remove=zombie_on_remove)]
-pub struct ZombieCommon;
+pub struct ZombieCommon {
+    pub walking: Handle<AnimatedImage>,
+    pub eating: Handle<AnimatedImage>,
+    pub state: ZombieState,
+}
+
+impl ZombieCommon {
+    pub fn new(walking: Handle<AnimatedImage>, eating: Handle<AnimatedImage>) -> Self {
+        ZombieCommon {
+            walking,
+            eating,
+            state: ZombieState::Walking,
+        }
+    }
+}
 
 /// Add the zombie to LandZombies
 fn zombie_on_add<'w>(mut world: DeferredWorld<'w>, context: HookContext) {
@@ -32,9 +57,45 @@ fn zombie_on_remove<'w>(mut world: DeferredWorld<'w>, context: HookContext) {
 }
 
 /// Move zombies forward
-fn move_zombies(time: Res<Time>, zombies: Query<&mut Transform, With<ZombieCommon>>) {
-    for mut position in zombies {
-        position.translation.x -= time.delta().as_millis() as f32 / 100.;
+fn move_zombies(
+    mut commands: Commands,
+    time: Res<Time>,
+    zombies: Query<(&mut Transform, &mut ZombieCommon)>,
+    mut health: Query<&mut PlayerCommon, With<PlantCommon>>,
+    land_plants: Res<LandPlants>,
+) {
+    for (mut position, mut common) in zombies {
+        let grid_pos: GridPos = (*position).into();
+        let new_state = if let Some(target) = land_plants.get(grid_pos) {
+            // We've got a plant here, eat it
+            let mut player = health.get_mut(*target).unwrap();
+            player.damage(&mut commands, time.delta().as_millis() as f32 / 100.);
+            ZombieState::Eating
+        } else {
+            // No plant here, move forward
+            position.translation.x -= time.delta().as_millis() as f32 / 100.;
+            ZombieState::Walking
+        };
+
+        if new_state != common.state {
+            common.state = new_state;
+        }
+    }
+}
+
+/// Update zombies' animation based on state (eating or walking)
+fn update_zombie_animation(
+    mut commands: Commands,
+    changed_zombies: Query<(Entity, &ZombieCommon), Changed<ZombieCommon>>,
+) {
+    for (entity, common) in changed_zombies {
+        commands.entity(entity).remove::<AnimatedImageController>();
+        commands
+            .entity(entity)
+            .insert(AnimatedImageController::play(match common.state {
+                ZombieState::Walking => common.walking.clone(),
+                ZombieState::Eating => common.eating.clone(),
+            }));
     }
 }
 
@@ -46,7 +107,11 @@ impl Plugin for ZombiePlugin {
         app.add_systems(Startup, create_zombie::setup);
         app.add_systems(
             Update,
-            (create_zombie::create_zombie_randomly, move_zombies),
+            (
+                create_zombie::create_zombie_randomly,
+                move_zombies,
+                update_zombie_animation,
+            ),
         );
     }
 }

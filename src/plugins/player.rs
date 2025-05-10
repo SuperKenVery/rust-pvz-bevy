@@ -33,11 +33,6 @@ impl PlayerCommon {
     }
 
     pub fn damage(&mut self, commands: &mut Commands, amount: f32) {
-        debug!(
-            "A {} damaged by amount {amount}, {} left",
-            self.name,
-            self.health - amount
-        );
         self.health -= amount;
 
         if self.health <= 0. {
@@ -61,6 +56,8 @@ impl Default for PlayerCommon {
 pub struct PlayerTextureResources {
     pub basic_zombie: Handle<AnimatedImage>,
     pub conehead_zombie: Handle<AnimatedImage>,
+    pub eating_zombie: Handle<AnimatedImage>,
+    pub eating_conehead_zombie: Handle<AnimatedImage>,
     pub sunflower: Handle<AnimatedImage>,
     pub sun: Handle<Image>,
     pub shooter: Handle<AnimatedImage>,
@@ -73,6 +70,8 @@ impl PlayerTextureResources {
         commands.insert_resource(PlayerTextureResources {
             basic_zombie: asset_server.load("zombie.gif"),
             conehead_zombie: asset_server.load("conehead_zombie_moving.gif"),
+            eating_zombie: asset_server.load("eating_zombie.gif"),
+            eating_conehead_zombie: asset_server.load("ConeheadZombieAttack.gif"),
             sunflower: asset_server.load("SunFlower.gif"),
             sun: asset_server.load("Sun_transparent_background.png"),
             shooter: asset_server.load("PeaShooter.gif"),

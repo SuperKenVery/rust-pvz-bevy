@@ -29,9 +29,9 @@ impl Plugin for PlantPlugin {
 }
 
 #[derive(Component)]
-#[component(on_add=plant_comm_on_add)]
+#[component(on_add=plant_comm_on_add, on_remove=plant_comm_on_remove)]
 #[require(PlayerCommon, Transform)]
-struct PlantCommon;
+pub struct PlantCommon;
 
 fn plant_comm_on_add<'w>(mut world: DeferredWorld<'w>, context: HookContext) {
     let transform = world.get::<Transform>(context.entity).unwrap();
@@ -42,4 +42,15 @@ fn plant_comm_on_add<'w>(mut world: DeferredWorld<'w>, context: HookContext) {
         error!("PlantCommon added to a non-empty land tile!");
     }
     map.add(grid_pos, context.entity);
+}
+
+fn plant_comm_on_remove<'w>(mut world: DeferredWorld<'w>, context: HookContext) {
+    let transform = world.get::<Transform>(context.entity).unwrap();
+    let grid_pos: GridPos = (*transform).into();
+    let mut map = world.resource_mut::<LandPlants>();
+
+    if map.is_empty(grid_pos) == true {
+        error!("PlantCommon removed from an empty land tile!");
+    }
+    map.remove(grid_pos);
 }
