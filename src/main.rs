@@ -35,6 +35,7 @@ fn main() {
         .add_systems(Startup, setup)
         .add_systems(PreStartup, PlayerTextureResources::setup)
         .add_systems(Startup, debug_setup)
+        .add_systems(PostUpdate, remove_dying)
         .add_observer(plugins::player::dead_cleaner)
         .run();
 }
@@ -44,3 +45,15 @@ fn setup(mut commands: Commands) {
 }
 
 fn debug_setup(mut commands: Commands, textures: Res<PlayerTextureResources>) {}
+
+/// A component that marks an entity as dying
+///
+/// It will be despawned at PostUpdate
+#[derive(Component)]
+pub struct Dying;
+
+fn remove_dying(mut commands: Commands, dying_entities: Query<Entity, With<Dying>>) {
+    for entity in dying_entities {
+        commands.entity(entity).despawn();
+    }
+}

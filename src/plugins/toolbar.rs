@@ -1,7 +1,10 @@
 use super::{land::LandPlants, plants::PlantCommon, PlayerTextureResources, TOOLBAR_Z};
-use crate::plugins::{
-    plants::{peashooter::Peashooter, sunflower::Sunflower, wallnut::Wallnut},
-    FLOATING_Z, FLYING_Z,
+use crate::{
+    plugins::{
+        plants::{peashooter::Peashooter, sunflower::Sunflower, wallnut::Wallnut},
+        FLOATING_Z, FLYING_Z,
+    },
+    Dying,
 };
 use bevy::{ecs::system::IntoObserverSystem, text::TextBounds};
 use bevy::{prelude::*, text::cosmic_text::ttf_parser::Style};
@@ -106,10 +109,7 @@ fn setup(mut commands: Commands, textures: Res<ToolbarTextureResource>, sun_coun
         textures.sunflower_card.clone(),
         50,
         5,
-        |mouse_pos: Vec2, commands: &mut Commands, textures: Res<PlayerTextureResources>| {
-            info!("Planting a sunflower at {mouse_pos}");
-            Sunflower::create(mouse_pos.into(), commands, textures);
-        },
+        Sunflower::create,
     );
 
     add_toolbar_item(
@@ -118,9 +118,7 @@ fn setup(mut commands: Commands, textures: Res<ToolbarTextureResource>, sun_coun
         textures.peashooter_card.clone(),
         100,
         10,
-        |mouse_pos: Vec2, commands: &mut Commands, textures: Res<PlayerTextureResources>| {
-            Peashooter::create(mouse_pos.into(), commands, textures);
-        },
+        Peashooter::create,
     );
 
     add_toolbar_item(
@@ -129,9 +127,7 @@ fn setup(mut commands: Commands, textures: Res<ToolbarTextureResource>, sun_coun
         textures.wallnut_card.clone(),
         50,
         5,
-        |mouse_pos: Vec2, commands: &mut Commands, textures: Res<PlayerTextureResources>| {
-            Wallnut::create(mouse_pos.into(), commands, textures);
-        },
+        Wallnut::create,
     );
 }
 
@@ -151,7 +147,11 @@ fn add_toolbar_item(
     const WIDTH: f32 = 110.;
     let y = 300. - HEIGHT / 2.;
 
+    #[cfg(not(feature = "debug_mode"))]
     let mut cooldown = Timer::from_seconds(cooldown_time.to_f32().unwrap(), TimerMode::Once);
+    #[cfg(feature = "debug_mode")]
+    let mut cooldown = Timer::from_seconds(cooldown_time.to_f32().unwrap() / 100., TimerMode::Once);
+
     cooldown.set_elapsed(Duration::from_secs_f32(cooldown_time.to_f32().unwrap()));
 
     commands
@@ -198,6 +198,7 @@ fn tb_gen_observer(
 ) -> impl Fn(
     Trigger<Pointer<Click>>,
     Commands,
+    Query<&PlantAvailabilityState>,
     Query<&ToolbarPlant>,
     Single<(&Camera, &GlobalTransform)>,
     Res<SunCount>,
@@ -205,7 +206,8 @@ fn tb_gen_observer(
     // The observer for toolbar click
     move |trigger: Trigger<Pointer<Click>>,
           mut commands: Commands,
-          plant: Query<&ToolbarPlant>,
+          plant_availability: Query<&PlantAvailabilityState>,
+          plant_commmon: Query<&ToolbarPlant>,
           camera: Single<(&Camera, &GlobalTransform)>,
           sun_count: Res<SunCount>| {
         let event = trigger.event();
@@ -217,15 +219,13 @@ fn tb_gen_observer(
             .origin
             .truncate();
 
-        let toolbar_plant = plant.get(trigger.target()).unwrap();
-        let price = toolbar_plant.price;
-        if sun_count.0 < price {
-            return;
-        }
-        if toolbar_plant.cooldown.finished() == false {
+        let availability = plant_availability.get(trigger.target()).unwrap();
+        if availability.available() == false {
             return;
         }
 
+        let toolbar_plant = plant_commmon.get(trigger.target()).unwrap();
+        let price = toolbar_plant.price;
         let cloned_plant_fn = plant_fn.clone();
         let toolbar_plant_entity = trigger.target();
         // Spawn the floating widget
@@ -259,12 +259,8 @@ fn tb_gen_observer(
                         sun_count.0 -= price;
                         let mut tb_plant = plant.get_mut(toolbar_plant_entity).unwrap();
                         tb_plant.cooldown.reset();
-                    } else {
-                        warn!("Not planting because it's not empty")
                     }
-                    if let Ok(mut entity) = commands.get_entity(trigger.target()) {
-                        entity.despawn();
-                    }
+                    commands.entity(trigger.target()).insert(Dying);
                 },
             );
     }

@@ -159,7 +159,6 @@ pub struct LandPlants {
 
 impl LandPlants {
     pub fn add(&mut self, pos: impl Into<(i32, i32)> + Debug, entity: Entity) {
-        debug!("Adding plant to land tile {pos:?}");
         self.tiles.insert(pos.into(), entity);
     }
 

@@ -23,7 +23,7 @@ impl JumpingZombie {
             ),
             JumpingZombie,
             AnimatedImageController::play(textures.jumping_zombie.clone()),
-            pos.to_world_transform(PLAYERS_Z + LAND_SIZE.y - pos.y),
+            pos.to_world_transform(PLAYERS_Z + LAND_SIZE.y - pos.y + 0.5),
         ));
     }
 }

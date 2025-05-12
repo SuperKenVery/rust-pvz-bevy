@@ -24,7 +24,7 @@ impl BasicZombie {
             BasicZombie,
             AnimatedImageController::play(textures.basic_zombie.clone()),
             pos.round()
-                .to_world_transform(PLAYERS_Z + LAND_SIZE.y - pos.y),
+                .to_world_transform(PLAYERS_Z + LAND_SIZE.y - pos.y + 0.5),
         ));
     }
 }

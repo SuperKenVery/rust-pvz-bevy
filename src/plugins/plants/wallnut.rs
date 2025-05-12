@@ -16,7 +16,12 @@ use vleue_kinetoscope::{
 pub struct Wallnut;
 
 impl Wallnut {
-    pub fn create(pos: GridPos, commands: &mut Commands, textures: Res<PlayerTextureResources>) {
+    pub fn create(
+        pos: impl Into<GridPos>,
+        commands: &mut Commands,
+        textures: Res<PlayerTextureResources>,
+    ) {
+        let pos: GridPos = pos.into();
         commands.spawn((
             PlayerCommon::new("Wallnut", 250),
             Wallnut,

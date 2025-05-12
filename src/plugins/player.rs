@@ -1,5 +1,7 @@
 //! Defines common behaviors of players, including plants and zombies.
 
+use crate::Dying;
+
 use super::land::{GridPos, LandPlants, LAND_SIZE};
 use super::PLAYERS_Z;
 use bevy::ecs::component::HookContext;
@@ -90,7 +92,7 @@ pub fn dead_cleaner(
 ) {
     for (ent, pc) in players {
         if pc.health <= 0. {
-            commands.get_entity(ent).unwrap().despawn();
+            commands.entity(ent).insert(Dying);
         }
     }
 }

@@ -8,21 +8,22 @@ use bevy::{
     ecs::{component::HookContext, world::DeferredWorld},
     prelude::*,
 };
-use peashooter::{peashooter_bullet_collide, peashooter_bullet_move, peashooter_shoot};
-use sunflower::{sun_go_up, sunflow_gen_sun};
+use peashooter::{move_bullet, shoot};
+use sunflower::{gen_sun_from_sky, init_global_sun_res, move_sun, sunflow_gen_sun};
 
 pub struct PlantPlugin;
 
 impl Plugin for PlantPlugin {
     fn build(&self, app: &mut App) {
+        app.add_systems(PreStartup, init_global_sun_res);
         app.add_systems(
             Update,
             (
-                sun_go_up,
+                move_sun,
                 sunflow_gen_sun,
-                peashooter_shoot,
-                peashooter_bullet_move,
-                // peashooter_bullet_collide,
+                gen_sun_from_sky,
+                shoot,
+                move_bullet,
             ),
         );
     }
