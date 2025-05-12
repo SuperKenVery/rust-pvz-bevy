@@ -109,7 +109,6 @@
 
         packages = {
           default = my-crate;
-          githubActions = nix-github-actions.lib.mkGithubMatrix { checks = self.packages; };
         };
 
         apps.default = flake-utils.lib.mkApp {
@@ -128,5 +127,7 @@
             # pkgs.ripgrep
           ];
         };
-      });
+      }) // {
+        githubActions = nix-github-actions.lib.mkGithubMatrix { checks = self.packages; };
+      };
 }
