@@ -12,9 +12,14 @@
       url = "github:rustsec/advisory-db";
       flake = false;
     };
+
+    nix-github-actions = {
+      url = "github:nix-community/nix-github-actions";
+      inputs.nixpkgs.follows = "nixpkgs";
+    }
   };
 
-  outputs = { self, nixpkgs, crane, flake-utils, advisory-db, ... }:
+  outputs = { self, nixpkgs, crane, flake-utils, advisory-db, nxi-github-actions ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
@@ -122,5 +127,7 @@
             # pkgs.ripgrep
           ];
         };
+
+        githubActions = nix-github-actions.lib.mkGithubMatrix { checks = self.packages; };
       });
 }
