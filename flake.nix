@@ -16,10 +16,10 @@
     nix-github-actions = {
       url = "github:nix-community/nix-github-actions";
       inputs.nixpkgs.follows = "nixpkgs";
-    }
+    };
   };
 
-  outputs = { self, nixpkgs, crane, flake-utils, advisory-db, nxi-github-actions ... }:
+  outputs = { self, nixpkgs, crane, flake-utils, advisory-db, nix-github-actions, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
