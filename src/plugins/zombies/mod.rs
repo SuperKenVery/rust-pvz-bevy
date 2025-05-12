@@ -9,11 +9,13 @@ use bevy::{
     ecs::{component::HookContext, entity::EntityEquivalent, world::DeferredWorld},
     prelude::*,
 };
+use jumping_zombie::jump_over_first_plant;
 use vleue_kinetoscope::{AnimatedImage, AnimatedImageController};
 
 pub mod basic_zombie;
 pub mod conehead_zombie;
 pub mod create_zombie;
+pub mod jumping_zombie;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum ZombieState {
@@ -111,6 +113,7 @@ impl Plugin for ZombiePlugin {
                 create_zombie::create_zombie_randomly,
                 move_zombies,
                 update_zombie_animation,
+                jump_over_first_plant,
             ),
         );
     }

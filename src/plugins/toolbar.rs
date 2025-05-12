@@ -1,11 +1,12 @@
-use super::{land::LandPlants, PlayerTextureResources, TOOLBAR_Z};
+use super::{land::LandPlants, plants::PlantCommon, PlayerTextureResources, TOOLBAR_Z};
 use crate::plugins::{
     plants::{peashooter::Peashooter, sunflower::Sunflower, wallnut::Wallnut},
     FLOATING_Z, FLYING_Z,
 };
 use bevy::{ecs::system::IntoObserverSystem, text::TextBounds};
 use bevy::{prelude::*, text::cosmic_text::ttf_parser::Style};
-use std::dbg;
+use num::traits::ToPrimitive;
+use std::time::Duration;
 
 pub struct ToolbarPlugin;
 
@@ -18,6 +19,8 @@ impl Plugin for ToolbarPlugin {
             (
                 follow_mouse,
                 sun_changed.run_if(resource_exists_and_changed::<SunCount>),
+                update_cooldown_secs,
+                availability_changed,
             ),
         );
     }
@@ -52,6 +55,24 @@ pub struct SunCounter;
 #[derive(Component)]
 pub struct ToolbarPlant {
     pub price: i32,
+    pub cooldown: Timer,
+}
+
+/// A component that stores the available state of a plant.
+///
+/// A plant is available when:
+/// - Cooldown timer is finished
+/// - You have enough suns
+#[derive(Component)]
+pub struct PlantAvailabilityState {
+    pub cooldown_finished: bool,
+    pub sun_enough: bool,
+}
+
+impl PlantAvailabilityState {
+    pub fn available(&self) -> bool {
+        self.cooldown_finished && self.sun_enough
+    }
 }
 
 /// Any entity with this component will be positionsed
@@ -84,6 +105,7 @@ fn setup(mut commands: Commands, textures: Res<ToolbarTextureResource>, sun_coun
         &mut x,
         textures.sunflower_card.clone(),
         50,
+        5,
         |mouse_pos: Vec2, commands: &mut Commands, textures: Res<PlayerTextureResources>| {
             info!("Planting a sunflower at {mouse_pos}");
             Sunflower::create(mouse_pos.into(), commands, textures);
@@ -95,6 +117,7 @@ fn setup(mut commands: Commands, textures: Res<ToolbarTextureResource>, sun_coun
         &mut x,
         textures.peashooter_card.clone(),
         100,
+        10,
         |mouse_pos: Vec2, commands: &mut Commands, textures: Res<PlayerTextureResources>| {
             Peashooter::create(mouse_pos.into(), commands, textures);
         },
@@ -105,6 +128,7 @@ fn setup(mut commands: Commands, textures: Res<ToolbarTextureResource>, sun_coun
         &mut x,
         textures.wallnut_card.clone(),
         50,
+        5,
         |mouse_pos: Vec2, commands: &mut Commands, textures: Res<PlayerTextureResources>| {
             Wallnut::create(mouse_pos.into(), commands, textures);
         },
@@ -116,6 +140,7 @@ fn add_toolbar_item(
     x: &mut f32,
     card_texture: Handle<Image>,
     price: i32,
+    cooldown_time: impl ToPrimitive + std::fmt::Display,
     plant_fn: impl Fn(Vec2, &mut Commands, Res<PlayerTextureResources>) -> ()
         + Sync
         + Send
@@ -126,14 +151,22 @@ fn add_toolbar_item(
     const WIDTH: f32 = 110.;
     let y = 300. - HEIGHT / 2.;
 
+    let mut cooldown = Timer::from_seconds(cooldown_time.to_f32().unwrap(), TimerMode::Once);
+    cooldown.set_elapsed(Duration::from_secs_f32(cooldown_time.to_f32().unwrap()));
+
     commands
         .spawn((
-            ToolbarPlant { price },
+            ToolbarPlant { price, cooldown },
+            PlantAvailabilityState {
+                cooldown_finished: true,
+                sun_enough: false,
+            },
             Sprite {
                 image: card_texture.clone(),
                 color: Color::linear_rgb(0.5, 0.5, 0.5),
                 ..default()
             },
+            Text2d::new(format!("{cooldown_time}s")),
             Transform::from_xyz(*x, y, TOOLBAR_Z),
             Pickable::default(),
         ))
@@ -189,8 +222,12 @@ fn tb_gen_observer(
         if sun_count.0 < price {
             return;
         }
+        if toolbar_plant.cooldown.finished() == false {
+            return;
+        }
 
         let cloned_plant_fn = plant_fn.clone();
+        let toolbar_plant_entity = trigger.target();
         // Spawn the floating widget
         commands
             .spawn((
@@ -206,7 +243,8 @@ fn tb_gen_observer(
                       textures: Res<PlayerTextureResources>,
                       camera: Single<(&Camera, &GlobalTransform)>,
                       map: Res<LandPlants>,
-                      mut sun_count: ResMut<SunCount>| {
+                      mut sun_count: ResMut<SunCount>,
+                      mut plant: Query<&mut ToolbarPlant>| {
                     let event = trigger.event();
                     let mouse_pos_raw = event.pointer_location.clone();
                     let (camera, camera_transform) = *camera;
@@ -219,6 +257,8 @@ fn tb_gen_observer(
                     if map.is_empty(mouse_pos.into()) {
                         cloned_plant_fn(mouse_pos, &mut commands, textures);
                         sun_count.0 -= price;
+                        let mut tb_plant = plant.get_mut(toolbar_plant_entity).unwrap();
+                        tb_plant.cooldown.reset();
                     } else {
                         warn!("Not planting because it's not empty")
                     }
@@ -256,18 +296,45 @@ fn follow_mouse(
 fn sun_changed(
     mut counter: Single<&mut Text2d, With<SunCounter>>,
     sun_count: Res<SunCount>,
-    toolbar_plants: Query<(&mut Sprite, &ToolbarPlant)>,
+    toolbar_plants: Query<(&mut PlantAvailabilityState, &ToolbarPlant)>,
 ) {
     let current_suns = sun_count.0;
     counter.0 = format!("{}", current_suns);
 
-    for (mut button, plant) in toolbar_plants {
-        if current_suns >= plant.price {
-            // Make it not grey
-            button.color = Color::WHITE;
+    for (mut availablility, plant) in toolbar_plants {
+        availablility.sun_enough = current_suns >= plant.price;
+    }
+}
+
+fn availability_changed(
+    toolbar_plants: Query<(&mut Sprite, &PlantAvailabilityState), Changed<PlantAvailabilityState>>,
+) {
+    for (mut sprite, availability) in toolbar_plants {
+        if availability.available() {
+            sprite.color = Color::WHITE;
         } else {
-            // Make it grey
-            button.color = Color::srgb(0.5, 0.5, 0.5);
+            sprite.color = Color::srgb(0.5, 0.5, 0.5);
+        }
+    }
+}
+
+fn update_cooldown_secs(
+    time: Res<Time>,
+    plants: Query<(&mut ToolbarPlant, &mut Text2d, &mut PlantAvailabilityState)>,
+) {
+    for (mut plant, mut text, mut availability) in plants {
+        plant.cooldown.tick(time.delta());
+
+        if !plant.cooldown.finished() {
+            text.0 = format!("{:.1}s", plant.cooldown.remaining_secs());
+            if availability.cooldown_finished != false {
+                availability.cooldown_finished = false;
+            }
+        } else {
+            text.0 = String::new();
+            if availability.cooldown_finished != true {
+                availability.cooldown_finished = true;
+            }
         }
     }
 }

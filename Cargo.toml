@@ -7,7 +7,12 @@ license = "MIT"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bevy = "0.16.0"
+bevy = { version = "0.16.0", features = ["track_location"] }
 fastrand = "2.3.0"
 num = "0.4.3"
 vleue_kinetoscope = "0.4.1"
+
+[features]
+# Debug mode create zombies faster and gives you
+# more initial suns, suitable for debug playing
+debug_mode = []

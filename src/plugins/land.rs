@@ -4,6 +4,9 @@ use bevy::{
     platform::collections::HashMap,
 };
 use num::{traits::real::Real, Num, ToPrimitive};
+use std::fmt::Debug;
+
+use super::toolbar::SunCount;
 
 pub const LAND_DISPLAY_OFFSET: Vec2 = Vec2::new(70.0, 0.0);
 
@@ -11,8 +14,17 @@ pub struct LandPlugin;
 impl Plugin for LandPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, add_land);
+        app.add_systems(PreStartup, setup_resources);
         // app.add_systems(Startup, GridPos::debug_offsets);
     }
+}
+
+fn setup_resources(mut commands: Commands) {
+    commands.insert_resource(LandPlants::default());
+    #[cfg(feature = "debug_mode")]
+    commands.insert_resource(SunCount(5000));
+    #[cfg(not(feature = "debug_mode"))]
+    commands.insert_resource(SunCount(50));
 }
 
 #[derive(Component)]
@@ -146,9 +158,8 @@ pub struct LandPlants {
 }
 
 impl LandPlants {
-    pub fn add(&mut self, pos: GridPos, entity: Entity) {
+    pub fn add(&mut self, pos: impl Into<(i32, i32)> + Debug, entity: Entity) {
         debug!("Adding plant to land tile {pos:?}");
-        assert!(pos.in_land());
         self.tiles.insert(pos.into(), entity);
     }
 
@@ -165,7 +176,7 @@ impl LandPlants {
         self.tiles.remove(&key);
     }
 
-    pub fn get(&self, pos: GridPos) -> Option<&Entity> {
+    pub fn get(&self, pos: impl Into<(i32, i32)>) -> Option<&Entity> {
         let key: (i32, i32) = pos.into();
         self.tiles.get(&key)
     }

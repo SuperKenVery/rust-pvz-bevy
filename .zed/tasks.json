@@ -1,0 +1,13 @@
+// Static tasks configuration.
+//
+// Example:
+[
+  {
+    "label": "Run under debug mode",
+    "command": "cargo run --features debug_mode"
+  },
+  {
+    "label": "Run",
+    "command": "cargo run"
+  }
+]

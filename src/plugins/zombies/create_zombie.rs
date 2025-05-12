@@ -4,13 +4,21 @@ use super::{
 use crate::plugins::{
     land::{LAND_SIZE, LAND_TILE_SIZE},
     player::PlayerCommon,
+    zombies::jumping_zombie::JumpingZombie,
     GridPos, PlayerTextureResources,
 };
 use bevy::log::info;
 use bevy::prelude::*;
+use num::traits::real::Real;
+use std::time::Duration;
 use vleue_kinetoscope::{
     AnimatedImage, AnimatedImageController, AnimatedImagePlugin, AnimationPlayed,
 };
+
+#[cfg(not(feature = "debug_mode"))]
+const INITIAL_INTERVAL: f32 = 10.;
+#[cfg(feature = "debug_mode")]
+const INITIAL_INTERVAL: f32 = 3.;
 
 #[derive(Resource)]
 pub struct ZombieCreateTimer {
@@ -19,7 +27,7 @@ pub struct ZombieCreateTimer {
 
 pub fn setup(mut commands: Commands) {
     commands.insert_resource(ZombieCreateTimer {
-        timer: Timer::from_seconds(10., TimerMode::Repeating),
+        timer: Timer::from_seconds(INITIAL_INTERVAL, TimerMode::Repeating),
     });
 }
 
@@ -27,6 +35,7 @@ pub fn setup(mut commands: Commands) {
 enum ZombieType {
     Basic,
     Conehead,
+    Jumping,
 }
 
 pub fn create_zombie_randomly(
@@ -35,6 +44,7 @@ pub fn create_zombie_randomly(
     mut timer: ResMut<ZombieCreateTimer>,
     textures: Res<PlayerTextureResources>,
 ) {
+    #[cfg(not(feature = "debug_mode"))]
     if time.elapsed().as_secs() < 45 {
         return;
     }
@@ -42,14 +52,22 @@ pub fn create_zombie_randomly(
     timer.timer.tick(time.delta());
     if timer.timer.finished() {
         let zombie_type: &ZombieType =
-            fastrand::choice(&[ZombieType::Basic, ZombieType::Conehead]).unwrap();
+            fastrand::choice(&[ZombieType::Basic, ZombieType::Conehead, ZombieType::Jumping])
+                .unwrap();
         let row = fastrand::i32(0..(LAND_SIZE.y as i32));
         let pos = GridPos::new(LAND_SIZE.x + 2., row);
-        info!("Creating zombie {zombie_type:?} at {pos:?}");
 
         match zombie_type {
             ZombieType::Basic => BasicZombie::create(pos, &mut commands, &textures),
             ZombieType::Conehead => ConeheadZombie::create(pos, &mut commands, &textures),
+            ZombieType::Jumping => JumpingZombie::create(pos, &mut commands, &textures),
         }
+
+        let x = time.elapsed().as_secs_f32();
+        let lower = ((1. / 50.) * x + 1.).powf(0.3);
+        let new_duration = (1. / lower) * INITIAL_INTERVAL;
+        timer
+            .timer
+            .set_duration(Duration::from_secs_f32(new_duration));
     }
 }

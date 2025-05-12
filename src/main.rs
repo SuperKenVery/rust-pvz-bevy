@@ -33,7 +33,7 @@ fn main() {
         .add_plugins(plugins::plants::PlantPlugin)
         .add_plugins(toolbar::ToolbarPlugin)
         .add_systems(Startup, setup)
-        .add_systems(PreStartup, (PlayerTextureResources::setup, setup_resources))
+        .add_systems(PreStartup, PlayerTextureResources::setup)
         .add_systems(Startup, debug_setup)
         .add_observer(plugins::player::dead_cleaner)
         .run();
@@ -41,11 +41,6 @@ fn main() {
 
 fn setup(mut commands: Commands) {
     commands.spawn(Camera2d);
-}
-
-fn setup_resources(mut commands: Commands) {
-    commands.insert_resource(plugins::land::LandPlants::default());
-    commands.insert_resource(plugins::toolbar::SunCount(50));
 }
 
 fn debug_setup(mut commands: Commands, textures: Res<PlayerTextureResources>) {}
