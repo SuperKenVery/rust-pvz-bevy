@@ -4,10 +4,12 @@
 [
   {
     "label": "Run under debug mode",
-    "command": "cargo run --features debug_mode"
+    "command": "cargo run --features debug_mode",
+    "env": { "RUST_BACKTRACE": "1" }
   },
   {
     "label": "Run",
-    "command": "cargo run"
+    "command": "cargo run",
+    "env": { "RUST_BACKTRACE": "1" }
   }
 ]

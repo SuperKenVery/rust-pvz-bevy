@@ -22,7 +22,7 @@ impl Plugin for PlantPlugin {
                 sunflow_gen_sun,
                 peashooter_shoot,
                 peashooter_bullet_move,
-                peashooter_bullet_collide,
+                // peashooter_bullet_collide,
             ),
         );
     }

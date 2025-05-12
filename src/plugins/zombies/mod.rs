@@ -122,7 +122,7 @@ impl Plugin for ZombiePlugin {
 /// A resource recording zombies on each row of land
 #[derive(Resource)]
 pub struct LandZombies {
-    rows: Vec<Vec<Entity>>,
+    pub rows: Vec<Vec<Entity>>,
 }
 
 impl Default for LandZombies {

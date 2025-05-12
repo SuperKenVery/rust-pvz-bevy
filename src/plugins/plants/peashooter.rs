@@ -68,12 +68,32 @@ pub fn peashooter_bullet_move(
     mut commands: Commands,
     time: Res<Time>,
     bullets: Query<(Entity, &mut Transform), With<Bullet>>,
+    zombie_pos: Query<&Transform, (With<ZombieCommon>, Without<Bullet>)>,
+    mut zombie_health: Query<&mut PlayerCommon, With<ZombieCommon>>,
+    land_zombies: Res<LandZombies>,
 ) {
+    debug!("peashooter_bullet_move");
     for (entity, mut bullet_pos) in bullets {
+        // Move right
         bullet_pos.translation.x += time.delta().as_millis() as f32 / 1.5;
 
+        // Check whether it's out of screen
         if bullet_pos.translation.x >= SCREEN_RESOLUTION.x + 28. / 2. {
             commands.get_entity(entity).unwrap().despawn();
+            continue;
+        }
+
+        // Check whether it has collided with a zombie
+        let bullet_grid_pos: GridPos = GridPos::from(*bullet_pos).round();
+        let row_zombies = &land_zombies.rows[bullet_grid_pos.y as usize];
+        debug!("moving bullet: {} zombies in this row", row_zombies.len());
+        for zombie in row_zombies {
+            if (bullet_pos.translation - zombie_pos.get(*zombie).unwrap().translation).length() < 5.
+            {
+                let mut health = zombie_health.get_mut(*zombie).unwrap();
+                health.damage(&mut commands, 10.);
+                commands.get_entity(entity).unwrap().despawn();
+            }
         }
     }
 }
@@ -87,11 +107,7 @@ pub fn peashooter_bullet_collide(
         for (zombie, mut player) in &mut zombies {
             if (bullet.translation - zombie.translation).length() < 5. {
                 player.damage(&mut commands, 10.);
-                let Ok(mut entity) = commands.get_entity(ent) else {
-                    error!("Failed to get entity when removing collided bullet");
-                    continue;
-                };
-                entity.despawn();
+                commands.get_entity(ent).unwrap().despawn();
             }
         }
     }
