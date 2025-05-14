@@ -10,6 +10,8 @@ dependencies = [
  "fastrand",
  "num",
  "vleue_kinetoscope",
+ "wasm-bindgen",
+ "web-time",
 ]
 
 [[package]]

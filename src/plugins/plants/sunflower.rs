@@ -10,7 +10,7 @@ use crate::{
 };
 use bevy::log::info;
 use bevy::prelude::*;
-use std::time::Duration;
+use core::time::Duration;
 use vleue_kinetoscope::{
     AnimatedImage, AnimatedImageController, AnimatedImagePlugin, AnimationPlayed,
 };
@@ -98,7 +98,6 @@ pub struct GlobalSunTimer(pub Timer);
 
 pub fn init_global_sun_res(mut commands: Commands) {
     commands.insert_resource(GlobalSunTimer(Timer::from_seconds(
-        #[cfg]
         15.,
         TimerMode::Repeating,
     )));

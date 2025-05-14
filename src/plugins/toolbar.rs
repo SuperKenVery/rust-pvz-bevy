@@ -8,8 +8,8 @@ use crate::{
 };
 use bevy::{ecs::system::IntoObserverSystem, text::TextBounds};
 use bevy::{prelude::*, text::cosmic_text::ttf_parser::Style};
+use core::time::Duration;
 use num::traits::ToPrimitive;
-use std::time::Duration;
 
 pub struct ToolbarPlugin;
 

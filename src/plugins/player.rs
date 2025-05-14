@@ -9,9 +9,10 @@ use bevy::ecs::world::DeferredWorld;
 use bevy::log::error;
 use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
+use core::time::Duration;
 use num::ToPrimitive;
-use std::time::Instant;
 use vleue_kinetoscope::{AnimatedImage, AnimatedImageController};
+use web_time::Instant;
 
 /// Components common for plants and zombies
 #[derive(Debug, Clone, Component)]
