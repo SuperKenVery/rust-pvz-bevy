@@ -9,8 +9,8 @@ use crate::plugins::{
 };
 use bevy::log::info;
 use bevy::prelude::*;
+use core::time::Duration;
 use num::traits::real::Real;
-use std::time::Duration;
 use vleue_kinetoscope::{
     AnimatedImage, AnimatedImageController, AnimatedImagePlugin, AnimationPlayed,
 };

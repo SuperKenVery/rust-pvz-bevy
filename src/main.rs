@@ -2,7 +2,6 @@ use bevy::log::DEFAULT_FILTER;
 use bevy::window::WindowResolution;
 use bevy::{log::LogPlugin, prelude::*};
 use vleue_kinetoscope::AnimatedImagePlugin;
-
 mod plugins;
 use plugins::{plants, toolbar, GridPos, PlayerTextureResources};
 

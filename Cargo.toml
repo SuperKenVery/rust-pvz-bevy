@@ -11,8 +11,13 @@ bevy = { version = "0.16.0", features = ["track_location"] }
 fastrand = "2.3.0"
 num = "0.4.3"
 vleue_kinetoscope = "0.4.1"
+wasm-bindgen = "0.2.100"
+web-time = "1.1.0"
 
 [features]
 # Debug mode create zombies faster and gives you
 # more initial suns, suitable for debug playing
 debug_mode = []
+
+# [lib]
+# crate-type = ["cdylib", "rlib"]
