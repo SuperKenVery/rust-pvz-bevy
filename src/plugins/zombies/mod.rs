@@ -3,7 +3,7 @@ use super::{
     plants::PlantCommon,
     GridPos,
 };
-use crate::plugins::player::PlayerCommon;
+use crate::{plugins::player::PlayerCommon, GameState};
 use bevy::log::{debug, info};
 use bevy::{
     ecs::{component::HookContext, entity::EntityEquivalent, world::DeferredWorld},
@@ -58,6 +58,11 @@ fn zombie_on_remove<'w>(mut world: DeferredWorld<'w>, context: HookContext) {
     land_zombie.remove_zombie(context.entity, grid_pos.round().y as usize);
 }
 
+#[cfg(feature = "debug_mode")]
+const ZOMBIE_SPEED: f32 = 1. / 10.;
+#[cfg(not(feature = "debug_mode"))]
+const ZOMBIE_SPEED: f32 = 1. / 100.;
+
 /// Move zombies forward
 fn move_zombies(
     mut commands: Commands,
@@ -65,17 +70,27 @@ fn move_zombies(
     zombies: Query<(&mut Transform, &mut ZombieCommon)>,
     mut health: Query<&mut PlayerCommon, With<PlantCommon>>,
     land_plants: Res<LandPlants>,
+    mut next_state: ResMut<NextState<GameState>>,
 ) {
     for (mut position, mut common) in zombies {
         let grid_pos: GridPos = (*position).into();
         let new_state = if let Some(target) = land_plants.get(grid_pos) {
             // We've got a plant here, eat it
             let mut player = health.get_mut(*target).unwrap();
-            player.damage(&mut commands, time.delta().as_millis() as f32 / 100.);
+            player.damage(
+                &mut commands,
+                time.delta().as_millis() as f32 * ZOMBIE_SPEED,
+            );
             ZombieState::Eating
         } else {
             // No plant here, move forward
-            position.translation.x -= time.delta().as_millis() as f32 / 100.;
+            position.translation.x -= time.delta().as_millis() as f32 * ZOMBIE_SPEED;
+
+            let grid_pos: GridPos = (*position).into();
+            if grid_pos.x < -0.5 {
+                next_state.set(GameState::End { win: false });
+            }
+
             ZombieState::Walking
         };
 
@@ -106,7 +121,7 @@ pub struct ZombiePlugin;
 impl Plugin for ZombiePlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(PreStartup, setup_landzombies);
-        app.add_systems(Startup, create_zombie::setup);
+        app.add_systems(OnEnter(GameState::Running), create_zombie::setup);
         app.add_systems(
             Update,
             (
@@ -114,7 +129,8 @@ impl Plugin for ZombiePlugin {
                 move_zombies,
                 update_zombie_animation,
                 jump_over_first_plant,
-            ),
+            )
+                .run_if(in_state(GameState::Running)),
         );
     }
 }

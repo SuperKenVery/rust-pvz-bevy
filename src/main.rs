@@ -7,14 +7,23 @@ use plugins::{plants, toolbar, GridPos, PlayerTextureResources};
 
 pub const SCREEN_RESOLUTION: Vec2 = Vec2::new(800., 600.);
 
+#[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash)]
+pub enum GameState {
+    #[default]
+    WaitForStart,
+    Running,
+    End {
+        win: bool,
+    },
+}
+
 fn main() {
     App::new()
-        .add_plugins(
+        .add_plugins((
             DefaultPlugins
                 .set(WindowPlugin {
                     primary_window: Some(Window {
                         title: "Plant vs Zombies".into(),
-                        // resolution: WindowResolution::new(800., 600.).with_scale_factor_override(1.0),
                         resolution: SCREEN_RESOLUTION.into(),
                         ..default()
                     }),
@@ -25,16 +34,24 @@ fn main() {
                     filter: "warn,Plant_vs_Zombies=trace".into(),
                     ..default()
                 }),
-        )
-        .add_plugins(AnimatedImagePlugin)
-        .add_plugins(plugins::land::LandPlugin)
-        .add_plugins(plugins::zombies::ZombiePlugin)
-        .add_plugins(plugins::plants::PlantPlugin)
-        .add_plugins(toolbar::ToolbarPlugin)
+            AnimatedImagePlugin,
+        ))
+        .insert_state(GameState::WaitForStart)
+        .add_plugins((
+            plugins::land::LandPlugin,
+            plugins::zombies::ZombiePlugin,
+            plugins::plants::PlantPlugin,
+            toolbar::ToolbarPlugin,
+            plugins::start_screen::StartScreen,
+            plugins::end_screen::EndScreen,
+        ))
         .add_systems(Startup, setup)
         .add_systems(PreStartup, PlayerTextureResources::setup)
-        .add_systems(Startup, debug_setup)
-        .add_systems(PostUpdate, remove_dying)
+        .add_systems(OnEnter(GameState::Running), debug_setup)
+        .add_systems(
+            PostUpdate,
+            remove_dying.run_if(in_state(GameState::Running)),
+        )
         .add_observer(plugins::player::dead_cleaner)
         .run();
 }

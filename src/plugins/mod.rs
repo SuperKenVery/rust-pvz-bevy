@@ -20,5 +20,8 @@ pub mod player;
 pub mod toolbar;
 pub mod zombies;
 
+pub mod end_screen;
+pub mod start_screen;
+
 pub use land::GridPos;
 pub use player::PlayerTextureResources;

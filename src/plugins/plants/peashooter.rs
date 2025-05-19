@@ -66,7 +66,7 @@ pub fn shoot(
         commands.spawn((
             Bullet,
             Sprite::from_image(textures.shooter_bullet.clone()),
-            transform.clone(),
+            bullet_pos,
         ));
     }
 }

@@ -1,11 +1,14 @@
 use super::{
     super::PLAYERS_Z, basic_zombie::BasicZombie, conehead_zombie::ConeheadZombie, ZombieCommon,
 };
-use crate::plugins::{
-    land::{LAND_SIZE, LAND_TILE_SIZE},
-    player::PlayerCommon,
-    zombies::jumping_zombie::JumpingZombie,
-    GridPos, PlayerTextureResources,
+use crate::{
+    plugins::{
+        land::{LAND_SIZE, LAND_TILE_SIZE},
+        player::PlayerCommon,
+        zombies::jumping_zombie::JumpingZombie,
+        GridPos, PlayerTextureResources,
+    },
+    GameState,
 };
 use bevy::log::info;
 use bevy::prelude::*;
@@ -38,15 +41,25 @@ enum ZombieType {
     Jumping,
 }
 
+#[cfg(feature = "debug_mode")]
+const WIN_SECONDS: u64 = 60 * 1;
+#[cfg(not(feature = "debug_mode"))]
+const WIN_SECONDS: u64 = 60 * 10;
+
 pub fn create_zombie_randomly(
     mut commands: Commands,
     time: Res<Time>,
     mut timer: ResMut<ZombieCreateTimer>,
     textures: Res<PlayerTextureResources>,
+    mut next_state: ResMut<NextState<GameState>>,
 ) {
     #[cfg(not(feature = "debug_mode"))]
     if time.elapsed().as_secs() < 45 {
         return;
+    }
+
+    if time.elapsed().as_secs() > WIN_SECONDS {
+        next_state.set(GameState::End { win: true });
     }
 
     timer.timer.tick(time.delta());

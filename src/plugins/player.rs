@@ -87,7 +87,7 @@ impl PlayerTextureResources {
 }
 
 pub fn dead_cleaner(
-    trigger: Trigger<DieEvent>,
+    _trigger: Trigger<DieEvent>,
     mut commands: Commands,
     players: Query<(Entity, &mut PlayerCommon)>,
 ) {

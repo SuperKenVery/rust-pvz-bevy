@@ -3,7 +3,7 @@ pub mod sunflower;
 pub mod wallnut;
 
 use super::{land::LandPlants, GridPos};
-use crate::plugins::player::PlayerCommon;
+use crate::{plugins::player::PlayerCommon, GameState};
 use bevy::{
     ecs::{component::HookContext, world::DeferredWorld},
     prelude::*,
@@ -24,7 +24,8 @@ impl Plugin for PlantPlugin {
                 gen_sun_from_sky,
                 shoot,
                 move_bullet,
-            ),
+            )
+                .run_if(in_state(GameState::Running)),
         );
     }
 }

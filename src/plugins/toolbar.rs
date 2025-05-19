@@ -4,7 +4,7 @@ use crate::{
         plants::{peashooter::Peashooter, sunflower::Sunflower, wallnut::Wallnut},
         FLOATING_Z, FLYING_Z,
     },
-    Dying,
+    Dying, GameState,
 };
 use bevy::{ecs::system::IntoObserverSystem, text::TextBounds};
 use bevy::{prelude::*, text::cosmic_text::ttf_parser::Style};
@@ -15,16 +15,17 @@ pub struct ToolbarPlugin;
 
 impl Plugin for ToolbarPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup);
-        app.add_systems(PreStartup, ToolbarTextureResource::setup);
+        app.add_systems(OnEnter(GameState::Running), setup);
+        app.add_systems(PreStartup, (ToolbarTextureResource::setup, setup_suncount));
         app.add_systems(
             Update,
             (
                 follow_mouse,
-                sun_changed.run_if(resource_exists_and_changed::<SunCount>),
+                sun_changed.run_if(resource_changed::<SunCount>),
                 update_cooldown_secs,
                 availability_changed,
-            ),
+            )
+                .run_if(in_state(GameState::Running)),
         );
     }
 }
@@ -89,7 +90,19 @@ struct FollowMouse;
 #[derive(Resource)]
 pub struct SunCount(pub i32);
 
-fn setup(mut commands: Commands, textures: Res<ToolbarTextureResource>, sun_count: Res<SunCount>) {
+fn setup_suncount(mut commands: Commands) {
+    #[cfg(feature = "debug_mode")]
+    commands.insert_resource(SunCount(5000));
+    #[cfg(not(feature = "debug_mode"))]
+    commands.insert_resource(SunCount(50));
+}
+
+fn setup(
+    mut commands: Commands,
+    textures: Res<ToolbarTextureResource>,
+    mut sun_count: ResMut<SunCount>,
+) {
+    sun_count.0 = sun_count.0; // Trigger sun_changed
     let counter_transform = Transform::from_xyz(-400. + 163. / 2., 300. - 48. / 2., TOOLBAR_Z);
     commands.spawn((
         SunCounter,

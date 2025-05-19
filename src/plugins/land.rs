@@ -6,6 +6,8 @@ use bevy::{
 use num::{traits::real::Real, Num, ToPrimitive};
 use std::fmt::Debug;
 
+use crate::GameState;
+
 use super::toolbar::SunCount;
 
 pub const LAND_DISPLAY_OFFSET: Vec2 = Vec2::new(70.0, 0.0);
@@ -13,7 +15,7 @@ pub const LAND_DISPLAY_OFFSET: Vec2 = Vec2::new(70.0, 0.0);
 pub struct LandPlugin;
 impl Plugin for LandPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, add_land);
+        app.add_systems(OnEnter(GameState::Running), add_land);
         app.add_systems(PreStartup, setup_resources);
         // app.add_systems(Startup, GridPos::debug_offsets);
     }
@@ -21,10 +23,6 @@ impl Plugin for LandPlugin {
 
 fn setup_resources(mut commands: Commands) {
     commands.insert_resource(LandPlants::default());
-    #[cfg(feature = "debug_mode")]
-    commands.insert_resource(SunCount(5000));
-    #[cfg(not(feature = "debug_mode"))]
-    commands.insert_resource(SunCount(50));
 }
 
 #[derive(Component)]
